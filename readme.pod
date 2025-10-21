@@ -20,9 +20,13 @@
 
 =over
 
-=item C<apt-snapshot take before.snapshot> 将数据保存到 C<before.snapshot> 中
+=item *
 
-=item C<apt-snapshot take> 将数据直接输出到 stdout
+C<apt-snapshot take before.snapshot> 将数据保存到 C<before.snapshot> 中
+
+=item *
+
+C<apt-snapshot take> 将数据直接输出到 stdout
 
 =back
 
@@ -34,9 +38,13 @@ C<apt-snapshot> 会尝试从 stdin 或者给定的文件之中读取数据。
 
 =over
 
-=item C<apt-snapshot apply before.snapshot> 将系统还原到 C<before.snapshot> 时的样子
+=item *
 
-=item C<apt-snapshot apply> 从 stdin 中读取快照，并还原！
+C<apt-snapshot apply before.snapshot> 将系统还原到 C<before.snapshot> 时的样子
+
+=item *
+
+C<apt-snapshot apply> 从 stdin 中读取快照，并还原！
 
 =back
 
@@ -48,13 +56,21 @@ C<apt-snapshot> 会尝试从 stdin 或者给定的文件之中读取数据。
 
 =over
 
-=item C<apt-snapshot diff> 从 stdin 中读取快照，并与现在的系统对比
+=item *
 
-=item C<apt-snapshot diff before.snapshot> 从 C<before.snapshot> 读取数据，并与现在的系统对比
+C<apt-snapshot diff> 从 stdin 中读取快照，并与现在的系统对比
 
-=item C<apt-snapshot diff before.snapshot after.snapshot> 对比两个快照
+=item *
 
-=item C<apt-snapshot diff --json before.snapshot after.snapshot> 对比两个快照，并将结果是 JSON 格式输出。方便与其它工具协作
+C<apt-snapshot diff before.snapshot> 从 C<before.snapshot> 读取数据，并与现在的系统对比
+
+=item *
+
+C<apt-snapshot diff before.snapshot after.snapshot> 对比两个快照
+
+=item *
+
+C<apt-snapshot diff --json before.snapshot after.snapshot> 对比两个快照，并将结果是 JSON 格式输出。方便与其它工具协作
 
 =back
 
@@ -64,7 +80,9 @@ C<apt-snapshot> 会尝试从 stdin 或者给定的文件之中读取数据。
 
 =over
 
-=item C<apt-snapshot pack before.snapshot --name my-grand-project> 将现在的系统和 C<before.snapshot> 的对比，并将所有新安装的软件包作为依赖，创建一个名为 C<my-grand-project-deps> 的软件包，并且写入到 C<my-grand-project-deps_1.0_all.deb> 之中。
+=item *
+
+C<apt-snapshot pack before.snapshot --name my-grand-project> 将现在的系统和 C<before.snapshot> 的对比，并将所有新安装的软件包作为依赖，创建一个名为 C<my-grand-project-deps> 的软件包，并且写入到 C<my-grand-project-deps_1.0_all.deb> 之中。
 
 =back
 
