@@ -1,0 +1,117 @@
+=encoding utf8
+
+=head1 apt snapshot !
+
+哇袄！可以给手动安装的 apt 软件列表打快照了！
+
+我们经常有这样的经历：为了编译某个软件，安装了一大堆的 C<-dev> 库，编译完之后又忘记删掉了，或者写 C<build-deps> 的时候忘了自己前面安装了哪些东西。
+
+这就是这个工具解决的问题！它可以把当前手动安装的软件列表给保存下来，并且在一系列 apt 操作之后，还能将之前保存的列表与当前的系统状态做 C<diff> 操作，得到新增/删除的软件列表；或者是直接操控 apt 把软件包还原成之前的状态。
+
+=head2 子命令
+
+具体来说有 C<take> C<apply> C<diff> C<pack> 四个子命令。
+
+=head3 take
+
+获取当前手动安装的软件包列表，并且保存成内部使用的 snapshot 格式（就现在实现来讲它是一个 JSON）。可以指定输出到文件，或者输出到 stdout
+
+示例：
+
+=over
+
+=item C<apt-snapshot take before.snapshot> 将数据保存到 C<before.snapshot> 中
+
+=item C<apt-snapshot take> 将数据直接输出到 stdout
+
+=back
+
+=head3 apply
+
+根据已有的快照，使用相关的命令来把系统恢复到之前的状态。需要重新安装的软件会使用 C<apt install> 安装。需要删除的软件会用 C<apt-mark auto> 标记为自动安装……但是不会直接删除。如果真的需要删掉这些软件包的话可以 C<apply> 之后使用 C<apt autoremove> 把它们删掉。
+
+C<apt-snapshot> 会尝试从 stdin 或者给定的文件之中读取数据。
+
+=over
+
+=item C<apt-snapshot apply before.snapshot> 将系统还原到 C<before.snapshot> 时的样子
+
+=item C<apt-snapshot apply> 从 stdin 中读取快照，并还原！
+
+=back
+
+=head3 diff
+
+将之前的快照和现有的系统对比，或者对比两个快照。
+
+如果没有参数，C<apt-snapshot> 会尝试从 stdin 中读取快照数据并和现在的系统状态对比；如果有一个参数，它会尝试读取文件中的内容作为快照，并和当前的系统状态对比；如果有两个参数，它会认为第一个是旧的，第二个是新的，并对比这两个快照。
+
+=over
+
+=item C<apt-snapshot diff> 从 stdin 中读取快照，并与现在的系统对比
+
+=item C<apt-snapshot diff before.snapshot> 从 C<before.snapshot> 读取数据，并与现在的系统对比
+
+=item C<apt-snapshot diff before.snapshot after.snapshot> 对比两个快照
+
+=item C<apt-snapshot diff --json before.snapshot after.snapshot> 对比两个快照，并将结果是 JSON 格式输出。方便与其它工具协作
+
+=back
+
+=head3 pack
+
+和 C<diff> 作用差不多，区别在于它会在 C<diff> 之后，以所有新安装的软件包作为依赖创建一个新的 metapackage。下一次想安装这一大坨东西的时候就不用 C<apt-snapshot apply> 了，直接 C<apt install> 这个 metapackage 即可！
+
+=over
+
+=item C<apt-snapshot pack before.snapshot --name my-grand-project> 将现在的系统和 C<before.snapshot> 的对比，并将所有新安装的软件包作为依赖，创建一个名为 C<my-grand-project-deps> 的软件包，并且写入到 C<my-grand-project-deps_1.0_all.deb> 之中。
+
+=back
+
+=head2 示例工作流
+
+如果想要编译某个软件：
+
+    apt-snapshot take state.snapshot            # 保存手动安装的软件包的信息
+    sudo apt install cmake                      # 安装一些软件包……
+    make... make... make...                     # 编译，但是发现缺了依赖！
+    sudo apt install libncurses-dev libssl-dev  # 把依赖装好
+    make... make... make...                     # 这回成功了？
+
+这个时候，使用 C<apt-snapshot diff> 就会看到：
+
+    0 apt-snapshot diff state.snapshot
+    INSTALLED: cmake, libncurses-dev, libssl-dev
+    NOTHING REMOVED
+
+如果这些东西不要了，就使用 C<apt-snapshot apply> 回滚到之前的状态
+
+    0 sudo apt-snapshot apply state.snapshot
+    cmake set to automatically installed.
+    libncurses-dev set to automatically installed.
+    libssl-dev set to automatically installed.
+
+如果需要一个 meta package，方便之后需要类似环境的时候一键安装出来：
+
+    0 apt-snapshot pack state.snapshot --name my-project-build-env
+    0 apt show ./my-project-build-env-deps_1.0_all.deb
+    Package: my-project-build-env-deps
+    Version: 1.0
+    Priority: optional
+    Section: misc
+    Maintainer: Equivs Dummy Package Generator <jyi@jyi-00-rust-dev.1.1.1.1>
+    Installed-Size: 9216 B
+    Download-Size: 2184 B
+    APT-Sources: /home/jyi/tmp/my-project-build-env-deps_1.0_all.deb
+    Description: Dependencies meta-package for my-project-build-env
+
+之后需要安装的时候：
+
+    0 sudo apt install ./my-project-build-env-deps_1.0_all.deb
+    Note, selecting 'my-project-build-env-deps' instead of './my-project-build-env-deps_1.0_all.deb'
+    Installing:
+        my-project-build-env-deps
+
+    Installing dependencies:
+        cmake  cmake-data  libjsoncpp26  libncurses-dev  librhash1  libssl-dev
+
